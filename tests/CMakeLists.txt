@@ -28,14 +28,24 @@ add_executable(models_test
 #  xception_tests.cpp
 )
 
+if(STATIC_LINK)
+  set(Boost_FILESYSTEM_LIBRARY "/usr/lib/aarch64-linux-gnu/lib/libboost_filesystem.a")
+  set(Boost_SYSTEM_LIBRARY "/usr/lib/aarch64-linux-gnu/libboost_system.a")
+  set(Boost_REGEX_LIBRARY "/usr/lib/aarch64-linux-gnu/libboost_regex.a")
+endif()
+
 # Link dependencies of test executable.
 target_link_libraries(models_test
   ${COMPILER_SUPPORT_LIBRARIES}
   ${ARMADILLO_LIBRARIES}
-  ${Boost_FILESYSTEM_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY}
-  ${Boost_REGEX_LIBRARY}
+  ${Boost_FILESYSTEM_LIBRARY} -static
+  #   ${Boost_SYSTEM_LIBRARY}
+  #   ${Boost_REGEX_LIBRARY}
+  -static
 )
+message(STATUS "Static linking? : ${STATIC_LINK}")
+message(STATUS "COMPILER_SUPPORT_LIBRARIES: ${COMPILER_SUPPORT_LIBRARIES}")
+message(STATUS "Boost_FILESYSTEM_LIBRARY: ${Boost_FILESYSTEM_LIBRARY}")
 
 # So the dll is placed in the same dir as the tests.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

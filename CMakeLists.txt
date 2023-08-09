@@ -10,9 +10,16 @@ set(CEREAL_VERSION "1.1.2")
 # We default to debugging mode for developers.
 option(DOWNLOAD_ENSMALLEN "If ensmallen is not found, download it." ON)
 option(USE_OPENMP "If available, use OpenMP for parallelization." ON)
+option(STATIC_LINK "If needed statically link libraries; statically linked mlplack is required." ON)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(STATIC_LINK)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  set(BUILD_SHARED_LIBS OFF)
+  set(CMAKE_EXE_LINKER_FLAGS "-static")
+endif()
 
 # Include modules in the CMake directory.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake")
@@ -54,6 +61,10 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
      endif(${MACOSX_VERSION} LESS 9)
   endif(APPLE)
 endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+
+if(STATIC_LINK)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
+endif(STATIC_LINK)
 
 # Now, find the libraries we need to compile against.  Several variables can be
 # set to manually specify the directory in which each of these libraries
@@ -162,24 +173,38 @@ if (NOT ENSMALLEN_FOUND)
   endif ()
 endif ()
 
-# Unfortunately this configuration variable is necessary and will need to be
-# updated as time goes on and new versions are released.
-set(Boost_ADDITIONAL_VERSIONS
-  "1.49.0" "1.50.0" "1.51.0" "1.52.0" "1.53.0" "1.54.0" "1.55.0")
-find_package(Boost 1.49
-    COMPONENTS
-      filesystem
-      system
-      regex
-    REQUIRED
-)
+# Check the explicitly given boost library
+if (STATIC_LINK)
+  set(Boost_FILESYSTEM_LIBRARY "/usr/lib/aarch64-linux-gnu/libboost_filesystem.a")
+  set(Boost_SYSTEM_LIBRARY "/usr/lib/aarch64-linux-gnu/libboost_system.a")
+  set(Boost_REGEX_LIBRARY "/usr/lib/aarch64-linux-gnu/libboost_regex.a") 
+  set(Boost_LIBRARIES "${Boost_FILESYSTEM_LIBRARY};${Boost_SYSTEM_LIBRARY};${Boost_REGEX_LIBRARY}")
+else ()
+  # Unfortunately this configuration variable is necessary and will need to be
+  # updated as time goes on and new versions are released.
+  set(Boost_ADDITIONAL_VERSIONS
+    "1.49.0" "1.50.0" "1.51.0" "1.52.0" "1.53.0" "1.54.0" "1.55.0" "1.74.0")
+  find_package(Boost 1.49
+      COMPONENTS
+        filesystem
+        system
+        regex
+      REQUIRED
+  )
+endif ()
 
 # Detect OpenMP support in a compiler. If the compiler supports OpenMP, flags
 # to compile with OpenMP are returned and added.  Note that MSVC does not
 # support a new-enough version of OpenMP to be useful.
 if (USE_OPENMP)
-  find_package(OpenMP)
+  if (NOT OpenMP_CXX_LIBRARIES)
+    find_package(OpenMP)
+  endif ()
 endif ()
+
+message(STATUS "OpenMP_C_FLAGS ${OpenMP_C_FLAGS}")
+message(STATUS "OpenMP_CXX_FLAGS ${OpenMP_CXX_FLAGS}")
+message(STATUS "OpenMP_CXX_LIBRARIES ${OpenMP_CXX_LIBRARIES}")
 
 if (OpenMP_FOUND AND OpenMP_CXX_VERSION VERSION_GREATER_EQUAL 3.0.0)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -192,7 +217,6 @@ else ()
   else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4068")
   endif ()
-  set(OpenMP_CXX_FLAGS "")
 endif ()
 
 # In Visual Studio, automatic linking is performed, so we don't need to worry
@@ -202,8 +226,6 @@ if (MSVC)
   link_directories(${Boost_LIBRARY_DIRS})
   set(Boost_LIBRARIES "")
 endif ()
-
-link_directories(${Boost_LIBRARY_DIRS})
 
 # Include directories for the previous dependencies.
 set(MODELS_INCLUDE_DIRS ${MLPACK_INCLUDE_DIR}
@@ -216,6 +238,10 @@ set(MODELS_LIBRARIES ${ARMADILLO_LIBRARIES}
                      ${Boost_LIBRARIES})
 
 include_directories(${MODELS_INCLUDE_DIRS})
+
+message(STATUS "CEREAL_INCLUDE_DIR ${CEREAL_INCLUDE_DIR}")
+message(STATUS "Boost_INCLUDE_DIRS ${Boost_INCLUDE_DIRS}")
+message(STATUS "Boost_LIBRARIES ${Boost_LIBRARIES}")
 
 # In Visual Studio, automatic linking is performed, so we don't need to worry
 # about it.  Clear the list of libraries to link against and let Visual Studio

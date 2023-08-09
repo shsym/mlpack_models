@@ -12,6 +12,10 @@ endif()
 set(MODEL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../")
 
+# add_executable(resnet_mind
+#   resnet_mind.cpp
+# )
+
 add_executable(models_test
   main.cpp
 #  augmentation_tests.cpp
@@ -36,6 +40,14 @@ target_link_libraries(models_test
   ${Boost_SYSTEM_LIBRARY}
   ${Boost_REGEX_LIBRARY}
 )
+
+# target_link_libraries(resnet_mind
+#   ${COMPILER_SUPPORT_LIBRARIES}
+#   ${ARMADILLO_LIBRARIES}
+#   ${Boost_FILESYSTEM_LIBRARY}
+#   ${Boost_SYSTEM_LIBRARY}
+#   ${Boost_REGEX_LIBRARY}
+# )
 
 # So the dll is placed in the same dir as the tests.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
